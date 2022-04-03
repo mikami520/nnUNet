@@ -18,6 +18,7 @@ from typing import Tuple
 from nnunet.training.loss_functions.crossentropy import RobustCrossEntropyLoss
 import numpy as np
 from nnunet.training.network_training.nnUNetTrainerV2 import nnUNetTrainerV2
+from nnunet.training.network_training.nnUNetTrainerV2_CascadeFullRes import nnUNetTrainerV2CascadeFullRes
 import torch
 from nnunet.training.data_augmentation.data_augmentation_moreDA import get_moreDA_augmentation
 from nnunet.training.loss_functions.deep_supervision import MultipleOutputLoss2
@@ -37,7 +38,7 @@ from nnunet.training.learning_rate.poly_lr import poly_lr
 from batchgenerators.utilities.file_and_folder_operations import *
 
 
-class nnUNetTrainerV3(nnUNetTrainerV2):
+class nnUNetTrainerV2_100epochs(nnUNetTrainerV2):
     """
     Info for Fabian: same as internal nnUNetTrainerV2_2
     """
@@ -48,7 +49,8 @@ class nnUNetTrainerV3(nnUNetTrainerV2):
                          deterministic, fp16)
         self.max_num_epochs = 100
 
-class nnUNetTrainerV3_CEnoDS(nnUNetTrainerV3):
+
+class nnUNetTrainerV3_CEnoDS(nnUNetTrainerV2):
     def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
                  unpack_data=True, deterministic=True, fp16=False):
         super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
@@ -107,3 +109,10 @@ class nnUNetTrainerV3_CEnoDS(nnUNetTrainerV3):
 
         return l.detach().cpu().numpy()
 
+
+class nnUNetTrainerV3CascadeFullRes(nnUNetTrainerV2CascadeFullRes):
+    def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
+                 unpack_data=True, deterministic=True, previous_trainer="nnUNetTrainerV3", fp16=False):
+        super().__init__(plans_file, fold, output_folder, dataset_directory,
+                         batch_dice, stage, unpack_data, deterministic, previous_trainer, fp16)
+        self.max_num_epochs = 100
