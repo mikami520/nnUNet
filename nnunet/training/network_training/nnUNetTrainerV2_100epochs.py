@@ -50,7 +50,7 @@ class nnUNetTrainerV2_100epochs(nnUNetTrainerV2):
         self.max_num_epochs = 100
 
 
-class nnUNetTrainerV3_CEnoDS(nnUNetTrainerV2):
+class nnUNetTrainerV2_CEnoDS(nnUNetTrainerV2):
     def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
                  unpack_data=True, deterministic=True, fp16=False):
         super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
@@ -110,9 +110,9 @@ class nnUNetTrainerV3_CEnoDS(nnUNetTrainerV2):
         return l.detach().cpu().numpy()
 
 
-class nnUNetTrainerV3CascadeFullRes(nnUNetTrainerV2CascadeFullRes):
+class nnUNetTrainerV2CascadeFullRes_100epochs(nnUNetTrainerV2CascadeFullRes):
     def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
-                 unpack_data=True, deterministic=True, previous_trainer="nnUNetTrainerV3", fp16=False):
+                 unpack_data=True, deterministic=True, previous_trainer="nnUNetTrainerV2_100epochs", fp16=False):
         super().__init__(plans_file, fold, output_folder, dataset_directory,
                          batch_dice, stage, unpack_data, deterministic, previous_trainer, fp16)
         self.max_num_epochs = 100
