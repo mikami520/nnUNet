@@ -39,10 +39,6 @@ from batchgenerators.utilities.file_and_folder_operations import *
 
 
 class nnUNetTrainerV2_100epochs(nnUNetTrainerV2):
-    """
-    Info for Fabian: same as internal nnUNetTrainerV2_2
-    """
-
     def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
                  unpack_data=True, deterministic=True, fp16=False):
         super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
@@ -59,14 +55,6 @@ class nnUNetTrainerV2_CEnoDS(nnUNetTrainerV2):
         self.loss = RobustCrossEntropyLoss()
 
     def run_iteration(self, data_generator, do_backprop=True, run_online_evaluation=False):
-        """
-        gradient clipping improves training stability
-
-        :param data_generator:
-        :param do_backprop:
-        :param run_online_evaluation:
-        :return:
-        """
         data_dict = next(data_generator)
         data = data_dict['data']
         target = data_dict['target']
