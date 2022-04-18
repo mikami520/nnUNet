@@ -54,49 +54,6 @@ class nnUNetTrainerV2_100epochs_CEnoDS(nnUNetTrainerV2):
         self.max_num_epochs = 100
         self.loss = RobustCrossEntropyLoss()
 
-    def run_iteration(self, data_generator, do_backprop=True, run_online_evaluation=False):
-        data_dict = next(data_generator)
-        data = data_dict['data']
-        target = data_dict['target']
-
-        data = maybe_to_torch(data)
-        target = maybe_to_torch(target)
-
-        if torch.cuda.is_available():
-            data = to_cuda(data)
-            target = to_cuda(target)
-
-        self.optimizer.zero_grad()
-
-        if self.fp16:
-            with autocast():
-                output = self.network(data)
-                del data
-                l = self.loss(output, target)
-
-            if do_backprop:
-                self.amp_grad_scaler.scale(l).backward()
-                self.amp_grad_scaler.unscale_(self.optimizer)
-                torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
-                self.amp_grad_scaler.step(self.optimizer)
-                self.amp_grad_scaler.update()
-        else:
-            output = self.network(data)
-            del data
-            l = self.loss(output, target)
-
-            if do_backprop:
-                l.backward()
-                torch.nn.utils.clip_grad_norm_(self.network.parameters(), 12)
-                self.optimizer.step()
-
-        if run_online_evaluation:
-            self.run_online_evaluation(output, target)
-
-        del target
-
-        return l.detach().cpu().numpy()
-
 
 class nnUNetTrainerV2CascadeFullRes_100epochs(nnUNetTrainerV2CascadeFullRes):
     def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
