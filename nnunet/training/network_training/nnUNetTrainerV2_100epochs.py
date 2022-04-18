@@ -46,7 +46,7 @@ class nnUNetTrainerV2_100epochs(nnUNetTrainerV2):
         self.max_num_epochs = 100
 
 
-class nnUNetTrainerV2_CEnoDS(nnUNetTrainerV2):
+class nnUNetTrainerV2_100epochs_CEnoDS(nnUNetTrainerV2):
     def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
                  unpack_data=True, deterministic=True, fp16=False):
         super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
@@ -104,3 +104,13 @@ class nnUNetTrainerV2CascadeFullRes_100epochs(nnUNetTrainerV2CascadeFullRes):
         super().__init__(plans_file, fold, output_folder, dataset_directory,
                          batch_dice, stage, unpack_data, deterministic, previous_trainer, fp16)
         self.max_num_epochs = 100
+
+        
+class nnUNetTrainerV2CascadeFullRes_100epochs_CEnoDS(nnUNetTrainerV2CascadeFullRes):
+    def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
+                 unpack_data=True, deterministic=True, fp16=False):
+        super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
+                         deterministic, fp16)
+        self.max_num_epochs = 100
+        self.loss = RobustCrossEntropyLoss()
+    
