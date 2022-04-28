@@ -15,6 +15,7 @@
 
 import torch
 from nnunet.training.loss_functions.TopK_loss import TopKLoss
+from nnunet.training.loss_functions.focal_loss import FocalLossV2
 from nnunet.training.loss_functions.crossentropy import RobustCrossEntropyLoss
 from nnunet.utilities.nd_softmax import softmax_helper
 from nnunet.utilities.tensor_utilities import sum_tensor
@@ -66,10 +67,12 @@ class GDL(nn.Module):
             x = x[:, 1:]
             y_onehot = y_onehot[:, 1:]
 
-        tp, fp, fn, _ = get_tp_fp_fn_tn(x, y_onehot, axes, loss_mask, self.square)
+        tp, fp, fn, _ = get_tp_fp_fn_tn(
+            x, y_onehot, axes, loss_mask, self.square)
 
         # GDL weight computation, we use 1/V
-        volumes = sum_tensor(y_onehot, axes) + 1e-6 # add some eps to prevent div by zero
+        # add some eps to prevent div by zero
+        volumes = sum_tensor(y_onehot, axes) + 1e-6
 
         if self.square_volumes:
             volumes = volumes ** 2
@@ -133,10 +136,14 @@ def get_tp_fp_fn_tn(net_output, gt, axes=None, mask=None, square=False):
     tn = (1 - net_output) * (1 - y_onehot)
 
     if mask is not None:
-        tp = torch.stack(tuple(x_i * mask[:, 0] for x_i in torch.unbind(tp, dim=1)), dim=1)
-        fp = torch.stack(tuple(x_i * mask[:, 0] for x_i in torch.unbind(fp, dim=1)), dim=1)
-        fn = torch.stack(tuple(x_i * mask[:, 0] for x_i in torch.unbind(fn, dim=1)), dim=1)
-        tn = torch.stack(tuple(x_i * mask[:, 0] for x_i in torch.unbind(tn, dim=1)), dim=1)
+        tp = torch.stack(tuple(x_i * mask[:, 0]
+                         for x_i in torch.unbind(tp, dim=1)), dim=1)
+        fp = torch.stack(tuple(x_i * mask[:, 0]
+                         for x_i in torch.unbind(fp, dim=1)), dim=1)
+        fn = torch.stack(tuple(x_i * mask[:, 0]
+                         for x_i in torch.unbind(fn, dim=1)), dim=1)
+        tn = torch.stack(tuple(x_i * mask[:, 0]
+                         for x_i in torch.unbind(tn, dim=1)), dim=1)
 
     if square:
         tp = tp ** 2
@@ -226,7 +233,8 @@ class MCCLoss(nn.Module):
         tn /= voxels
 
         nominator = tp * tn - fp * fn + self.smooth
-        denominator = ((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn)) ** 0.5 + self.smooth
+        denominator = ((tp + fp) * (tp + fn) * (tn + fp)
+                       * (tn + fn)) ** 0.5 + self.smooth
 
         mcc = nominator / denominator
 
@@ -324,9 +332,11 @@ class DC_and_CE_loss(nn.Module):
         self.ignore_label = ignore_label
 
         if not square_dice:
-            self.dc = SoftDiceLoss(apply_nonlin=softmax_helper, **soft_dice_kwargs)
+            self.dc = SoftDiceLoss(
+                apply_nonlin=softmax_helper, **soft_dice_kwargs)
         else:
-            self.dc = SoftDiceLossSquared(apply_nonlin=softmax_helper, **soft_dice_kwargs)
+            self.dc = SoftDiceLossSquared(
+                apply_nonlin=softmax_helper, **soft_dice_kwargs)
 
     def forward(self, net_output, target):
         """
@@ -343,11 +353,13 @@ class DC_and_CE_loss(nn.Module):
         else:
             mask = None
 
-        dc_loss = self.dc(net_output, target, loss_mask=mask) if self.weight_dice != 0 else 0
+        dc_loss = self.dc(net_output, target,
+                          loss_mask=mask) if self.weight_dice != 0 else 0
         if self.log_dice:
             dc_loss = -torch.log(-dc_loss)
 
-        ce_loss = self.ce(net_output, target[:, 0].long()) if self.weight_ce != 0 else 0
+        ce_loss = self.ce(
+            net_output, target[:, 0].long()) if self.weight_ce != 0 else 0
         if self.ignore_label is not None:
             ce_loss *= mask[:, 0]
             ce_loss = ce_loss.sum() / mask.sum()
@@ -355,7 +367,8 @@ class DC_and_CE_loss(nn.Module):
         if self.aggregate == "sum":
             result = self.weight_ce * ce_loss + self.weight_dice * dc_loss
         else:
-            raise NotImplementedError("nah son") # reserved for other stuff (later)
+            # reserved for other stuff (later)
+            raise NotImplementedError("nah son")
         return result
 
 
@@ -382,7 +395,8 @@ class DC_and_BCE_loss(nn.Module):
         if self.aggregate == "sum":
             result = ce_loss + dc_loss
         else:
-            raise NotImplementedError("nah son") # reserved for other stuff (later)
+            # reserved for other stuff (later)
+            raise NotImplementedError("nah son")
 
         return result
 
@@ -400,7 +414,8 @@ class GDL_and_CE_loss(nn.Module):
         if self.aggregate == "sum":
             result = ce_loss + dc_loss
         else:
-            raise NotImplementedError("nah son") # reserved for other stuff (later)
+            # reserved for other stuff (later)
+            raise NotImplementedError("nah son")
         return result
 
 
@@ -410,9 +425,11 @@ class DC_and_topk_loss(nn.Module):
         self.aggregate = aggregate
         self.ce = TopKLoss(**ce_kwargs)
         if not square_dice:
-            self.dc = SoftDiceLoss(apply_nonlin=softmax_helper, **soft_dice_kwargs)
+            self.dc = SoftDiceLoss(
+                apply_nonlin=softmax_helper, **soft_dice_kwargs)
         else:
-            self.dc = SoftDiceLossSquared(apply_nonlin=softmax_helper, **soft_dice_kwargs)
+            self.dc = SoftDiceLossSquared(
+                apply_nonlin=softmax_helper, **soft_dice_kwargs)
 
     def forward(self, net_output, target):
         dc_loss = self.dc(net_output, target)
@@ -420,5 +437,44 @@ class DC_and_topk_loss(nn.Module):
         if self.aggregate == "sum":
             result = ce_loss + dc_loss
         else:
-            raise NotImplementedError("nah son") # reserved for other stuff (later?)
+            # reserved for other stuff (later?)
+            raise NotImplementedError("nah son")
+        return result
+
+
+class DC_and_Focal_loss(nn.Module):
+    def __init__(self, soft_dice_kwargs, focal_kwargs, aggregate="sum", square_dice=False, weight_focal=1, weight_dice=1, log_dice=False):
+        super(DC_and_Focal_loss, self).__init__()
+        self.aggregate = aggregate
+        self.focal = FocalLossV2(apply_nonlin=softmax_helper, **focal_kwargs)
+        self.log_dice = log_dice
+        self.weight_focal = weight_focal
+        self.weight_dice = weight_dice
+
+        if not square_dice:
+            self.dc = SoftDiceLoss(
+                apply_nonlin=softmax_helper, **soft_dice_kwargs)
+        else:
+            self.dc = SoftDiceLossSquared(
+                apply_nonlin=softmax_helper, **soft_dice_kwargs)
+
+    def forward(self, net_output, target):
+        """
+        target must be b, c, x, y(, z) with c=1
+        :param net_output:
+        :param target:
+        :return:
+        """
+        dc_loss = self.dc(net_output, target) if self.weight_dice != 0 else 0
+        if self.log_dice:
+            dc_loss = -torch.log(-dc_loss)
+
+        focal_loss = self.focal(
+            net_output, target[:, 0].long()) if self.weight_focal != 0 else 0
+
+        if self.aggregate == "sum":
+            result = self.weight_focal * focal_loss + self.weight_dice * dc_loss
+        else:
+            # reserved for other stuff (later)
+            raise NotImplementedError("nah son")
         return result

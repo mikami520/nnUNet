@@ -15,7 +15,9 @@
 
 from collections import OrderedDict
 from typing import Tuple
+from nnunet.training.loss_functions.dice_loss import DC_and_Focal_loss
 from nnunet.training.loss_functions.crossentropy import RobustCrossEntropyLoss
+from nnunet.training.loss_functions.focal_loss import FocalLossV2
 import numpy as np
 from nnunet.training.network_training.nnUNetTrainerV2 import nnUNetTrainerV2
 from nnunet.training.network_training.nnUNetTrainerV2_CascadeFullRes import nnUNetTrainerV2CascadeFullRes
@@ -62,7 +64,7 @@ class nnUNetTrainerV2CascadeFullRes_100epochs(nnUNetTrainerV2CascadeFullRes):
                          batch_dice, stage, unpack_data, deterministic, previous_trainer, fp16)
         self.max_num_epochs = 100
 
-        
+
 class nnUNetTrainerV2CascadeFullRes_100epochs_CEnoDS(nnUNetTrainerV2CascadeFullRes):
     def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
                  unpack_data=True, deterministic=True, fp16=False):
@@ -70,4 +72,27 @@ class nnUNetTrainerV2CascadeFullRes_100epochs_CEnoDS(nnUNetTrainerV2CascadeFullR
                          deterministic, fp16)
         self.max_num_epochs = 100
         self.loss = RobustCrossEntropyLoss()
-    
+
+
+class nnUNetTrainerV2_100epochs_FocalLoss(nnUNetTrainerV2):
+    def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
+                 unpack_data=True, deterministic=True, fp16=False):
+        super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
+                         deterministic, fp16)
+        print(
+            "Focal loss parameters: {'alpha':0.25, 'gamma':2, 'smooth':1e-5}")
+        self.max_num_epochs = 100
+        self.loss = FocalLossV2(apply_nonlin=nn.Softmax(
+            dim=1), **{'alpha': 0.25, 'gamma': 2, 'smooth': 1e-5})
+
+
+class nnUNetTrainerV2_100epochs_DCFocalLoss(nnUNetTrainerV2):
+    def __init__(self, plans_file, fold, output_folder=None, dataset_directory=None, batch_dice=True, stage=None,
+                 unpack_data=True, deterministic=True, fp16=False):
+        super().__init__(plans_file, fold, output_folder, dataset_directory, batch_dice, stage, unpack_data,
+                         deterministic, fp16)
+        print(
+            "Focal loss parameters: {'alpha':0.25, 'gamma':2, 'smooth':1e-5}")
+        self.max_num_epochs = 100
+        self.loss = DC_and_Focal_loss({'batch_dice': self.batch_dice, 'smooth': 1e-5,
+                                      'do_bg': False}, {'alpha': 0.25, 'gamma': 2, 'smooth': 1e-5})
